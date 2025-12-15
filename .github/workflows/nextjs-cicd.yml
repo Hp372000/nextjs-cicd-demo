@@ -30,7 +30,7 @@ jobs:
         host: ${{ secrets.VM_HOST }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: ".next/*"
+        source: "."
         target: "/var/www/web"
         strip_components: 1
 
