@@ -1,0 +1,50 @@
+name: nextjs-ci-cd
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+
+    - name: Install dependencies
+      working-directory: hello-world-nextjs
+      run: npm ci
+
+    - name: Build Next.js
+      working-directory: hello-world-nextjs
+      run: npm run build
+
+    - name: Upload build to VM
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        source: "hello-world-nextjs/.next/*"
+        target: "/var/www/web"
+        strip_components: 2
+
+    - name: Install deps & start app
+      uses: appleboy/ssh-action@v0.1.9
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        script: |
+          cd /var/www/web
+          npm install --omit=dev
+          pm2 restart nextjs || pm2 start npm --name nextjs -- start
+          pm2 save
+
