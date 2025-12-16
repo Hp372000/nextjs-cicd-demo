@@ -6,50 +6,66 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Build Next.js
-      run: npm run build
+      - name: Build Next.js
+        run: npm run build
 
-    - name: Upload build to VM
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
-        source: |
-          .next
-          public
-          package.json
-          package-lock.json
-          pages
-          lib
-          data
-        target: "/var/www/web"
-        strip_components: 1
+      - name: Prepare artifact
+        run: |
+          mkdir artifact
+          cp -r .next public package.json package-lock.json artifact/
 
-    - name: Install deps & start app
-      uses: appleboy/ssh-action@v0.1.9
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
-        script: |
-          cd /var/www/web
-          npm install --omit=dev
-          pm2 restart nextjs || pm2 start npm --name nextjs -- start
-          pm2 save
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: artifact
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-build
+          path: artifact
+
+      - name: Upload artifact to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: artifact/*
+          target: /var/www/web
+          overwrite: true
+
+      - name: Install deps & start app
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /var/www/web
+            npm install --omit=dev
+            pm2 restart nextjs || pm2 start npm --name nextjs -- start
+            pm2 save
+
 
