@@ -30,7 +30,14 @@ jobs:
         host: ${{ secrets.VM_HOST }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: "."
+        source: |
+          .next
+          public
+          package.json
+          package-lock.json
+          pages
+          lib
+          data
         target: "/var/www/web"
         strip_components: 1
 
