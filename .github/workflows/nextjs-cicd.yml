@@ -24,15 +24,22 @@ jobs:
     - name: Build Next.js
       run: npm run build
 
+    - name: Prepare deploy artifact
+      run: |
+        rm -rf deploy
+        mkdir deploy
+        cp -r .next deploy/
+        cp -r public deploy/
+        cp -r pages deploy/
+        cp -r lib deploy/ || true
+        cp -r data deploy/ || true
+        cp package.json package-lock.json deploy/
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: nextjs-build
-        path: |
-          .next
-          public
-          package.json
-          package-lock.json
+        path: deploy
 
     - name: Copy build to VM
       uses: appleboy/scp-action@v0.1.7
@@ -40,11 +47,7 @@ jobs:
         host: ${{ secrets.VM_HOST }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: |
-          .next
-          public
-          package.json
-          package-lock.json
+        source: "deploy"
         target: "/var/www/web"
         strip_components: 1
 
