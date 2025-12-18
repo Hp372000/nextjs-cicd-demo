@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <div style={{ padding: 20 }}>
       <h1>Next.js CI/CD Demo 🚀</h1>
-      <p>Artifact-based deployment to Azure VM</p>
+      <p>Artifact-based CI/CD deployment to Azure VM</p>
 
       <form onSubmit={submitMessage}>
         <input
